@@ -177,7 +177,7 @@ def _initialize_acl(server):
     """Allow the use of ACLs and ensure they remain after reboot.
 
     """
-    local('sudo tune2fs -o acl /dev/sda1')
+    local('sudo tune2fs -o acl /dev/xvda')
     local('sudo mount -o remount,acl /')
     # For after restarts
     local('sudo sed -i "s/noatime /noatime,acl /g" /etc/fstab')
