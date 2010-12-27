@@ -1,5 +1,7 @@
+This is where I track pantheon 1.2 developments and try to keep them working 
+on linode servers.
+
 apt-get install git-core
-git clone git://github.com/pantheon-systems/mercury.git -b master /opt/pantheon
+git clone git://github.com/boztek/mercury.git -b linode /opt/pantheon
 cd /opt/pantheon
 python setup.py
-
