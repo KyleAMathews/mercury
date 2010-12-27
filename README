@@ -1,5 +1,7 @@
 This is where I track pantheon 1.2 developments and try to keep them working 
-on linode servers.
+on linode servers. The assumed starting point is a fresh 64 bit Ubuntu 10.04 
+LTS install on linode. Simply log in as root and then execute the following 
+commands:
 
 apt-get install git-core
 git clone git://github.com/boztek/mercury.git -b linode /opt/pantheon
