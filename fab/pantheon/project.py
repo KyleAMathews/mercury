@@ -146,7 +146,12 @@ class BuildTools(object):
         local("sed -i 's/^[^#|*]*\$base_url/# $base_url/' %s" % settings_file)
 
         # Create pantheon.settings.php and include it from settings.php
-        pantheon.copy_template('pantheon.settings.php', site_dir)
+        ps_template = pantheon.get_template('pantheon.settings.php')
+        ps_dict = {'project': self.project,
+                   'vhost_root': self.server.vhost_dir}
+        template = pantheon.build_template(ps_template, ps_dict)
+        with open(settings_pantheon, 'w') as f:
+            f.write(template)
         with open(os.path.join(site_dir, 'settings.php'), 'a') as f:
             f.write('\n/* Added by Pantheon */\n')
             f.write("include 'pantheon.settings.php';\n")
@@ -156,11 +161,9 @@ class BuildTools(object):
 
         """
         for env in self.environments:
-            vhost = self.server.get_vhost_file(self.project, env)
             root = os.path.join(self.server.webroot, self.project, env)
             drush_dict = {'project': self.project,
                           'environment': env,
-                          'vhost_path': vhost,
                           'root': root}
             self.server.create_drush_alias(drush_dict)
 
@@ -200,6 +203,7 @@ class BuildTools(object):
                 vhost_dict['robots_settings'] = ''
             else:
                 vhost_dict['robots_settings'] = 'alias /robots.txt /usr/local/share/robots-deny.txt'
+
 
             self.server.create_vhost(filename, vhost_dict)
             if self.server.distro == 'ubuntu':
@@ -249,6 +253,22 @@ class BuildTools(object):
         # Cleanup
         if handler == 'import':
             local('rm -rf %s' % tempdir)
+
+    def setup_phpmyadmin(self, db_password):
+        """ Create apache vhost and config.inc.php config for phpmyadmin.
+        db_password: database password to store as an env var in the vhost file
+
+        """
+        vhost_dict = {'db_username':self.project,
+                      'db_password':db_password}
+        
+        filename = 'pma_vhost'
+        # Todo: fix hard-coding of .ubuntu here?
+        vhost_template_file = 'pma.vhost.template.ubuntu'
+
+        self.server.create_vhost(filename, vhost_dict, vhost_template_file)
+        if self.server.distro == 'ubuntu':
+            local('a2ensite %s' % filename)
 
     def push_to_repo(self, tag):
         """ Commit changes in working directory and push to central repo.

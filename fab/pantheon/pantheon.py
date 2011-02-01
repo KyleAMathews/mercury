@@ -9,6 +9,7 @@ import urllib2
 import zipfile
 
 import postback
+import hudsontools
 
 from fabric.api import *
 
@@ -242,7 +243,6 @@ class PantheonServer:
         """ Create an alias.drushrc.php file.
         drush_dict: project:
                     environment:
-                    vhost_path: full path to vhost file
                     root: full path to drupal installation
 
         """
@@ -254,7 +254,7 @@ class PantheonServer:
         with open(alias_file, 'w') as f:
             f.write(template)
 
-    def create_vhost(self, filename, vhost_dict):
+    def create_vhost(self, filename, vhost_dict, vhost_template_file = None):
         """
         filename:  vhost filename
         vhost_dict: server_name:
@@ -268,7 +268,9 @@ class PantheonServer:
                     memcache_prefix:
 
         """
-        vhost_template = get_template('vhost.template.%s' % self.distro)
+        if (vhost_template_file == None):
+          vhost_template_file = 'vhost.template.%s' % self.distro
+        vhost_template = get_template(vhost_template_file)
         template = build_template(vhost_template, vhost_dict)
         vhost = os.path.join(self.vhost_dir, filename)
         with open(vhost, 'w') as f:
@@ -399,11 +401,15 @@ class PantheonArchive(object):
 
         """
         if tarfile.is_tarfile(self.path):
+            hudsontools.junit_pass('Tar found.','ArchiveType')
             return 'tar'
         elif zipfile.is_zipfile(self.path):
+            hudsontools.junit_pass('Zip found.','ArchiveType')
             return 'zip'
         else:
-            postback.build_error('Error: Not a valid tar/zip archive.')
+            err = 'Error: Not a valid tar/zip archive.'
+            hudsontools.junit_fail(err,'ArchiveType')
+            postback.build_error(err)
 
     def _open_archive(self):
         """Return an opened archive file object.

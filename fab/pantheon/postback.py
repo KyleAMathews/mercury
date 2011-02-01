@@ -5,6 +5,7 @@ import os
 import sys
 import urllib2
 import uuid
+import hudsontools
 
 from fabric.api import local
 
@@ -35,12 +36,21 @@ def get_job_and_id():
     """
     return (os.environ.get('JOB_NAME'), os.environ.get('BUILD_NUMBER'))
 
-def get_build_info(job_name, build_number):
+def get_build_info(job_name, build_number, check_previous):
     """Return a dictionary of Hudson build information.
+    job_name: hudson job name.
+    build_number: hudson build number.
+    check_previous: bool. If we should return data only if there is a change in
+                          build status.
 
     """
     data = _get_hudson_data(job_name, build_number)
 
+    # If we care, determine if status changed from previous run.
+    if check_previous and not _status_changed(job_name, data):
+        return None
+
+    # Either we dont care if status changed, or there were changes.
     return {'job_name': job_name,
             'build_number': build_number,
             'build_status': data.get('result'),
@@ -55,7 +65,7 @@ def get_build_data():
     data['build_warnings'] = list()
     data['build_error'] = ''
 
-    build_data_path = os.path.join(get_workspace(), 'build_data.txt')
+    build_data_path = os.path.join(hudsontools.get_workspace(), 'build_data.txt')
     if os.path.isfile(build_data_path):
         with open(build_data_path, 'r') as f:
             while True:
@@ -87,7 +97,7 @@ def write_build_data(response_type, data):
     data: Info to be written to file for later retrieval in Atlas postback.
 
     """
-    build_data_path = os.path.join(get_workspace(), 'build_data.txt')
+    build_data_path = os.path.join(hudsontools.get_workspace(), 'build_data.txt')
 
     with open(build_data_path, 'a') as f:
         cPickle.dump({response_type:data}, f)
@@ -118,18 +128,22 @@ def build_error(message):
     print message + '\n\n'
     sys.exit(0)
 
-def get_workspace():
-    """Return the workspace to store build data information.
-
-    If being run from CLI (not hudson) use alternate path (so data can still
-    be sent back to Atlas, regardless of how job is run).
+def _status_changed(job_name, data):
+    """Returns True if the build status changed from the previous run.
+    Will also return true if there is no previous status.
+    job_name: hudson job name.
+    data: dict from hudsons python api for the current build.
 
     """
-    workspace = os.environ.get('WORKSPACE')
-    if workspace:
-        return workspace
+    prev_build_number = int(data.get('number')) - 1
+    # Valid previous build exists.
+    if prev_build_number > 0:
+        result = data.get('result')
+        prev_result = _get_hudson_data(job_name, prev_build_number).get('result')
+        return result != prev_result
     else:
-        return '/etc/pantheon/hudson/workspace'
+        # First run, status has changed from "none" to something.
+        return True
 
 def _get_build_parameters(data):
     """Return the build parameters from Hudson build API data.
