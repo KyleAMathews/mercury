@@ -84,7 +84,7 @@ def _configure_server(server):
     # Get any new packages.
     server.update_packages()
     # Update pantheon code, run bcfg2, restart hudson.
-      # update.update_pantheon(first_boot=True)
+    update.update_pantheon(first_boot=True)
     # Create the tunable files.
     local('cp /etc/pantheon/templates/tuneables /etc/pantheon/server_tuneables')
     local('chmod 755 /etc/pantheon/server_tuneables')
