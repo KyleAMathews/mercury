@@ -32,7 +32,7 @@ def postback_atlas(check_changed_status=False):
         response.update({'build_data': postback.get_build_data()})
 
         # Send response to Atlas.
-        postback.postback(response)
+        # postback.postback(response)
     else:
         print('Build status has not changed. No postback performed.')
 
