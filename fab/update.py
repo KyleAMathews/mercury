@@ -5,6 +5,7 @@ import time
 import urllib2
 import os
 import traceback
+import string
 
 from pantheon import hudsontools
 from pantheon import pantheon
@@ -36,9 +37,10 @@ def update_pantheon(first_boot=False):
     urllib2.urlopen('http://localhost:8090/quietDown')
     # Update from repo
     with cd('/opt/pantheon'):
-        local('git pull origin master', capture=False)
-    # Update from BCFG2
-    local('/usr/sbin/bcfg2 -vqed', capture=False)
+        local('git pull origin linode', capture=False)
+    # Update from BCFG2, but don't stall if that fails for some reason.
+    with settings(warn_only=True):
+        local('/usr/sbin/bcfg2 -vqed', capture=False)
     # Restart Hudson
     local('curl -X POST http://localhost:8090/safeRestart', capture=False)
 
@@ -167,13 +169,19 @@ def rebuild_environment(project, environment):
     else:
         hudsontools.junit_pass('Rebuild successful.', 'RebuildEnv')
 
-def update_data(project, environment, source_env):
+def update_data(project, environment, source_env, updatedb='True'):
     """Update the data in project/environment using data from source_env.
 
     """
     updater = update.Updater(project, environment)
     try:
         updater.data_update(source_env)
+        # updatedb is passed in as a string so we have to evaluate it
+        if eval(string.capitalize(updatedb)):
+            updater.drupal_updatedb()
+        # The server has a 2min delay before updates to the index are processed
+        local("drush @%s_%s solr-reindex" % (project, environment))
+        local("drush @%s_%s cron" % (project, environment))
     except:
         hudsontools.junit_error(traceback.format_exc(), 'UpdateData')
         raise
