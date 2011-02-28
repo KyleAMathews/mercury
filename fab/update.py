@@ -33,16 +33,29 @@ def update_pantheon(first_boot=False):
     determine if it was successful.
 
     """
-    # Put hudson into quietDown mode so no more jobs are started.
-    urllib2.urlopen('http://localhost:8090/quietDown')
-    # Update from repo
-    with cd('/opt/pantheon'):
-        local('git pull origin linode', capture=False)
-    # Update from BCFG2, but don't stall if that fails for some reason.
-    with settings(warn_only=True):
-        local('/usr/sbin/bcfg2 -vqed', capture=False)
-    # Restart Hudson
-    local('curl -X POST http://localhost:8090/safeRestart', capture=False)
+    try:
+        # Put hudson into quietDown mode so no more jobs are started.
+        urllib2.urlopen('http://localhost:8090/quietDown')
+        # Find out if this server is using a testing branch.
+        branch = 'linode'
+        if os.path.exists('/opt/branch.txt'):
+            branch = open('/opt/branch.txt').read().strip() or 'linode'
+        # Update from repo
+        with cd('/opt/pantheon'):
+            local('git fetch --prune origin', capture=False)
+            local('git checkout --force %s' % branch, capture=False)
+            local('git reset --hard origin/%s' % branch, capture=False)
+        # Update from BCFG2
+        if first_boot:
+            local('/usr/sbin/bcfg2 -vqed', capture=False)
+            # Temporarily disable bcfg2 until open-source server is available.
+            local("sed -i 's/^bcfg2 = .*$/bcfg2 = https:\/\/localhost:6789/' /etc/bcfg2.conf")
+    except:
+        print(traceback.format_exc())
+        raise
+    finally:
+        # Restart Hudson
+        local('curl -X POST http://localhost:8090/safeRestart', capture=False)
 
     # If this is not the first boot, send back update data.
     if not first_boot:
@@ -179,14 +192,16 @@ def update_data(project, environment, source_env, updatedb='True'):
         # updatedb is passed in as a string so we have to evaluate it
         if eval(string.capitalize(updatedb)):
             updater.drupal_updatedb()
-        # The server has a 2min delay before updates to the index are processed
-        local("drush @%s_%s solr-reindex" % (project, environment))
-        local("drush @%s_%s cron" % (project, environment))
     except:
         hudsontools.junit_error(traceback.format_exc(), 'UpdateData')
         raise
     else:
         hudsontools.junit_pass('Update successful.', 'UpdateData')
+
+    # The server has a 2min delay before updates to the index are processed
+    with settings(warn_only=True):
+        local("drush @%s_%s solr-reindex" % (project, environment))
+        local("drush @%s_%s cron" % (project, environment))
 
 def update_files(project, environment, source_env):
     """Update the files in project/environment using files from source_env.
@@ -224,3 +239,5 @@ def git_status(project, environment):
     else:
         hudsontools.junit_pass('', 'GitStatus')
 
+if __name__ == '__main__':
+    update_pantheon()
