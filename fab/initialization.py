@@ -13,7 +13,8 @@ def initialize(vps=None):
     _initialize_server_type(vps)
 
     _initialize_fabric()
-    _initialize_certificate()
+    # _initialize_certificate()
+    _initialize_root_certificate()
     # _initialize_package_manager(server)
     local('cp /opt/pantheon/fab/templates/apt.pantheon.list /etc/apt/sources.list.d/pantheon.list')
     local('cp /opt/pantheon/fab/templates/apt.php.pin /etc/apt/preferences.d/php')
@@ -58,7 +59,7 @@ def _initialize_fabric():
     if not os.path.exists('/usr/bin/fab'):
         local('ln -s /usr/local/bin/fab /usr/bin/fab')
 
-def _initialize_certificate():
+def _initialize_root_certificate():
     """Install the Pantheon root certificate.
 
     """
@@ -169,11 +170,18 @@ def _initialize_acl(server):
     local('sudo sed -i "s/noatime /noatime,acl /g" /etc/fstab')
 
 def _initialize_jenkins(server):
-    """Grant Jenkins access to the system SSL certificate.
+    """Add a Jenkins user and grant it access to the directory that will contain the certificate.
 
     """
-    local('setfacl -m u:jenkins:r /etc/pantheon/system.pem')
-    local('/etc/init.d/jenkins restart') # TODO: Can we remove now with ACLs?
+    # Create the user:
+    local('adduser --system --home /var/lib/jenkins --no-create-home --ingroup nogroup --disabled-password --shell /bin/bash jenkins')
+
+    # Grant it access:
+    local('setfacl --recursive --no-mask --modify user:jenkins:r /etc/pantheon')
+    local('setfacl --recursive --modify default:user:jenkins:r /etc/pantheon')
+
+    # Review the permissions:
+    local('getfacl /etc/pantheon', capture=False)
 
 def _initialize_apache(server):
     """Remove the default vhost and clear /var/www.
