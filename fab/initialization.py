@@ -50,7 +50,8 @@ def _initialize_package_manager(server):
 
     """
     if server.distro == 'ubuntu':
-        with cd(server.template_dir):
+        template_dir = '/opt/pantheon/fab/templates'
+        with cd(template_dir):
             local('cp apt.pantheon.list /etc/apt/sources.list.d/pantheon.list')
 
             local('cp apt.openssh.pin /etc/apt/preferences.d/openssh')
