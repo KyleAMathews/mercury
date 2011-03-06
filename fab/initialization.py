@@ -178,6 +178,8 @@ def _initialize_jenkins(server):
 
     local('usermod -aG ssl-cert jenkins')
     local('apt-get install -y jenkins')
+    local('bcfg2 -vqed')
+    local('/etc/init.d/jenkins restart')
 
     # Grant it access:
     #local('setfacl --recursive --no-mask --modify user:jenkins:rx /etc/pantheon')
