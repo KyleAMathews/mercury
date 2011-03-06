@@ -49,9 +49,9 @@ def update_pantheon(first_boot=False):
             # Put jenkins into quietDown mode so no more jobs are started.
             urllib2.urlopen('http://localhost:8090/quietDown')
             # Find out if this server is using a testing branch.
-            branch = 'master'
+            branch = 'changes-afoot'
             if os.path.exists('/opt/branch.txt'):
-                branch = open('/opt/branch.txt').read().strip() or 'master'
+                branch = open('/opt/branch.txt').read().strip() or 'changes-afoot'
             # Update from repo
             with cd('/opt/pantheon'):
                 local('git fetch --prune origin', capture=False)
@@ -59,6 +59,12 @@ def update_pantheon(first_boot=False):
                 local('git reset --hard origin/%s' % branch, capture=False)
             # Update from BCFG2
             local('/usr/sbin/bcfg2 -vqed', capture=False)
+            # local('/usr/sbin/bcfg2 -vqed', capture=False)
+            if first_boot:
+                print "FIRST BOOT!\n"
+                local('/usr/sbin/bcfg2 -vqed', capture=False)
+                # Temporarily disable bcfg2 until open-source server is available.
+                local("sed -i 's/^bcfg2 = .*$/bcfg2 = https:\/\/localhost:6789/' /etc/bcfg2.conf")
         except:
             print(traceback.format_exc())
             raise
