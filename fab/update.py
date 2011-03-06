@@ -37,9 +37,9 @@ def update_pantheon(first_boot=False):
         # Put hudson into quietDown mode so no more jobs are started.
         urllib2.urlopen('http://localhost:8090/quietDown')
         # Find out if this server is using a testing branch.
-        branch = 'linode'
+        branch = 'dev'
         if os.path.exists('/opt/branch.txt'):
-            branch = open('/opt/branch.txt').read().strip() or 'linode'
+            branch = open('/opt/branch.txt').read().strip() or 'dev'
         # Update from repo
         with cd('/opt/pantheon'):
             local('git fetch --prune origin', capture=False)
