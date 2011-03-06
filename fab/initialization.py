@@ -18,9 +18,7 @@ def initialize(vps=None):
     # _initialize_package_manager(server)
     local('cp /opt/pantheon/fab/templates/apt.pantheon.list /etc/apt/sources.list.d/pantheon.list')
     local('cp /opt/pantheon/fab/templates/apt.php.pin /etc/apt/preferences.d/php')
-    # No need for ldap patched ssh for non-getpantheon servers.
-    # if not pantheon.is_private_server():
-    #     local('cp apt.openssh.pin /etc/apt/preferences.d/openssh')
+    local('cp /opt/pantheon/fab/templates/apt.openssh.pin /etc/apt/preferences.d/openssh')
     local('apt-key add /opt/pantheon/fab/templates/apt.ppakeys.txt')
     local('echo \'APT::Install-Recommends "0";\' >>  /etc/apt/apt.conf')
     server.update_packages()
