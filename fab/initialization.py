@@ -14,7 +14,13 @@ def initialize(vps=None, bcfg2_host='config.getpantheon.com'):
 
     _initialize_fabric()
     _initialize_root_certificate()
-    _initialize_package_manager(server)
+    # _initialize_package_manager(server)
+    local('cp /opt/pantheon/fab/templates/apt.pantheon.list /etc/apt/sources.list.d/pantheon.list')
+    local('cp /opt/pantheon/fab/templates/apt.openssh.pin /etc/apt/preferences.d/openssh')
+    local('apt-key add /opt/pantheon/fab/templates/apt.ppakeys.txt')
+    local('echo \'APT::Install-Recommends "0";\' >>  /etc/apt/apt.conf')
+    server.update_packages()
+
     _initialize_bcfg2(server)
     _initialize_iptables(server)
     _initialize_drush()
